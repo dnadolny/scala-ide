@@ -24,6 +24,8 @@ import org.eclipse.jface.text.IDocument
 import org.eclipse.jface.text.Position
 import org.eclipse.ui.texteditor.ITextEditor
 import org.eclipse.jdt.core.IJavaProject
+import scala.tools.eclipse.quickfix.deprecation.ViewBoundToImplicitProposal
+import scala.tools.eclipse.quickfix.deprecation.ProcedureToUnitProposal
 
 
 /**
@@ -74,6 +76,9 @@ class ScalaQuickFixProcessor extends IQuickFixProcessor with HasLogger {
 
              val createMethodFix = suggestCreateMethodFix(context.getCompilationUnit(), ann.getText, pos)
              val changeMethodCase = suggestChangeMethodCase(context.getCompilationUnit(), ann.getText, pos)
+             
+             val viewBounds = suggestViewBoundToImplicit(context.getCompilationUnit(), ann.getText, pos)
+             val procedureToUnit = suggestProcedureToUnit(context.getCompilationUnit(), ann.getText, pos)
 
              // concatenate lists of found quick fixes
             corrections = corrections ++
@@ -81,7 +86,9 @@ class ScalaQuickFixProcessor extends IQuickFixProcessor with HasLogger {
               typeMismatchFix ++
               createClassFix ++
               createMethodFix ++
-              changeMethodCase
+              changeMethodCase ++
+              viewBounds ++
+              procedureToUnit
 
           }
         corrections match {
@@ -90,6 +97,20 @@ class ScalaQuickFixProcessor extends IQuickFixProcessor with HasLogger {
         }
       }
       case _ => null
+  }
+
+  private def suggestViewBoundToImplicit(cu: ICompilationUnit, problemMessage : String, pos: Position): List[IJavaCompletionProposal] = {
+    problemMessage match {
+      case ValueNotAMember(value, className) => List(ViewBoundToImplicitProposal(pos)) //TODO: match on the actual message, not yet added to the compiler
+      case _ => List()
+    }
+  }
+
+  private def suggestProcedureToUnit(cu: ICompilationUnit, problemMessage : String, pos: Position): List[IJavaCompletionProposal] = {
+    problemMessage match {
+      case ValueNotAMember(value, className) => List(ProcedureToUnitProposal(pos)) //TODO: match on the actual message, not yet added to the compiler
+      case _ => List()
+    }
   }
 
   private def suggestChangeMethodCase(cu: ICompilationUnit, problemMessage : String, pos: Position): List[IJavaCompletionProposal] = {
